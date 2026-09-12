@@ -1,0 +1,7 @@
+{
+  "UniqueModName": "Crynano_AvoidSaveCorruption",
+  "Assemblies": [
+    "AvoidSaveCorruption.dll"
+  ],
+  "Dependencies": []
+}
