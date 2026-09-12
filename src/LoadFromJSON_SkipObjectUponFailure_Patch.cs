@@ -2,7 +2,6 @@
 using MGSC;
 using SimpleJSON;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,77 +10,8 @@ namespace AvoidSaveCorruption
     [HarmonyPatch(typeof(LoadFromJSON), nameof(LoadFromJSON.CreateObjectFromJSON))]
     public static class LoadFromJSON_SkipObjectUponFailure_Patch
     {
-        public static bool Prefix(JSONNode node, Type type, MainMenuScreen __instance, out object __result)
+        public static bool Prefix(JSONNode node, Type type, ref object __result)
         {
-            if (type == typeof(bool[]))
-            {
-                if (node.IsArray)
-                {
-                    JSONArray asArray = node.AsArray;
-                    bool[] array = new bool[asArray.Count];
-                    for (int i = 0; i < asArray.Count; i++)
-                    {
-                        array[i] = asArray[i].AsBool;
-                    }
-                    __result = array;
-                    return false;
-                }
-                Debug.LogError($"Expected JSONArray for bool[], but got: {node}");
-                __result = null;
-                return false;
-            }
-            if (type.IsGenericType)
-            {
-                if (type.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    JSONArray asArray2 = node.AsArray;
-                    Type type2 = type.GetGenericArguments()[0];
-                    IList list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(type2));
-                    {
-                        foreach (JSONNode child in asArray2.Children)
-                        {
-                            object obj = LoadFromJSON.CreateObjectFromJSON(child, type2);
-                            if (obj != null)
-                            {
-                                list.Add(obj);
-                            }
-                        }
-                        __result= list;
-                        return false;
-                    }
-                }
-                if (type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                {
-                    JSONArray asArray3 = node.AsArray;
-                    Type type3 = type.GetGenericArguments()[0];
-                    Type type4 = type.GetGenericArguments()[1];
-                    IDictionary dictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type3, type4));
-                    if (asArray3 != null)
-                    {
-                        foreach (JSONNode child2 in asArray3.Children)
-                        {
-                            JSONNode node2 = child2["Key"];
-                            JSONNode node3 = child2["Value"];
-                            dictionary.Add(LoadFromJSON.CreateObjectFromJSON(node2, type3), LoadFromJSON.CreateObjectFromJSON(node3, type4));
-                        }
-                        __result = dictionary;
-                        return false;
-                    }
-                }
-                Debug.LogError($"Failed load data of type {type} from JSON, unknown generic type.");
-                __result = null;
-                return false;
-            }
-            if (ParseHelper.HasParserForType(type) && !LoadFromJSON._ignoreParseHelperTypes.Contains(type))
-            {
-                if (string.IsNullOrEmpty(node.Value) && node.Count == 0)
-                {
-                    __result = null;
-                    return false;
-                }
-                __result = ParseHelper.ParseByType(type, node.Value);
-                return false;
-            }
             if (type.IsClass || MGSC.SerializationHelper.IsStruct(type))
             {
                 if (string.IsNullOrEmpty(node.Value) && node.Count == 0)
@@ -158,9 +88,7 @@ namespace AvoidSaveCorruption
                 __result = obj2;
                 return false;
             }
-            Debug.LogError($"Failed load data of type {type} from JSON.");
-            __result = null;
-            return false;
+            return true;
         }
     }
 }
